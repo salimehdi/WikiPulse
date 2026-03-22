@@ -18,8 +18,42 @@ import {
   ReferenceLine,
 } from "recharts"
 
-// Mock data for traffic chart
-const trafficData = [
+// ==========================================
+// 1. TYPES & INTERFACES
+// ==========================================
+
+export interface TrafficDataPoint {
+  date: string
+  views: number
+  editors?: number
+}
+
+export interface SpectralDataPoint {
+  frequency: number
+  magnitude: number
+}
+
+export interface BenfordDataPoint {
+  digit: string | number
+  observed: number
+  expected: number
+}
+
+export interface SpiderRatioDataPoint {
+  name: string
+  value: number
+}
+
+export interface ZScoreDataPoint {
+  day: string
+  zScore: number
+}
+
+// ==========================================
+// 2. FALLBACK MOCK DATA
+// ==========================================
+
+const fallbackTrafficData: TrafficDataPoint[] = [
   { date: "Jan 1", views: 1200, editors: 40 },
   { date: "Jan 2", views: 1300, editors: 45 },
   { date: "Jan 3", views: 1500, editors: 48 },
@@ -29,8 +63,7 @@ const trafficData = [
   { date: "Jan 7", views: 1800, editors: 42 },
 ]
 
-// Spectral Fingerprint data
-const spectralData = [
+const fallbackSpectralData: SpectralDataPoint[] = [
   { frequency: 0.05, magnitude: 0.3 },
   { frequency: 0.1, magnitude: 0.5 },
   { frequency: 0.14, magnitude: 0.9 },
@@ -39,8 +72,7 @@ const spectralData = [
   { frequency: 0.45, magnitude: 0.35 },
 ]
 
-// Benford's Law data
-const benfordData = [
+const fallbackBenfordData: BenfordDataPoint[] = [
   { digit: "1", observed: 28, expected: 30.1 },
   { digit: "2", observed: 17, expected: 17.6 },
   { digit: "3", observed: 12, expected: 12.5 },
@@ -48,14 +80,12 @@ const benfordData = [
   { digit: "5", observed: 8, expected: 7.9 },
 ]
 
-// Spider Ratio data
-const spiderRatioData = [
+const fallbackSpiderRatioData: SpiderRatioDataPoint[] = [
   { name: "User Traffic", value: 75 },
   { name: "Bot Traffic", value: 25 },
 ]
 
-// Z-Score History data
-const zScoreData = [
+const fallbackZScoreData: ZScoreDataPoint[] = [
   { day: "Day 1", zScore: 1.2 },
   { day: "Day 2", zScore: 1.5 },
   { day: "Day 3", zScore: 2.1 },
@@ -65,17 +95,23 @@ const zScoreData = [
   { day: "Day 7", zScore: 1.1 },
 ]
 
-export function TrafficChart() {
+// ==========================================
+// 3. COMPONENTS
+// ==========================================
+
+export function TrafficChart({ data }: { data?: TrafficDataPoint[] }) {
+  const chartData = data && data.length > 0 ? data : fallbackTrafficData
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
       <h3 className="text-lg font-semibold text-slate-100 mb-4">Traffic Analysis</h3>
       <ResponsiveContainer width="100%" height={300}>
-        <ComposedChart data={trafficData}>
+        <ComposedChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
           <XAxis dataKey="date" stroke="#94a3b8" />
-          <YAxis yAxisId="left" stroke="#3b82f6" scale="log" />
+          <YAxis yAxisId="left" stroke="#3b82f6" scale="log" domain={['auto', 'auto']} />
           <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" />
-          <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569" }} />
+          <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px" }} />
           <Legend />
           <Line yAxisId="left" type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} name="User Views" />
           <Bar yAxisId="right" dataKey="editors" fill="#9ca3af" opacity={0.3} name="Unique Editors" />
@@ -85,16 +121,18 @@ export function TrafficChart() {
   )
 }
 
-export function SpectralFingerprint() {
+export function SpectralFingerprint({ data }: { data?: SpectralDataPoint[] }) {
+  const chartData = data && data.length > 0 ? data : fallbackSpectralData
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
       <h3 className="text-lg font-semibold text-slate-100 mb-4">Spectral Fingerprint</h3>
       <ResponsiveContainer width="100%" height={250}>
-        <LineChart data={spectralData}>
+        <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
           <XAxis dataKey="frequency" stroke="#94a3b8" />
           <YAxis stroke="#94a3b8" />
-          <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569" }} />
+          <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px" }} />
           <ReferenceLine
             x={0.14}
             stroke="#f59e0b"
@@ -108,16 +146,18 @@ export function SpectralFingerprint() {
   )
 }
 
-export function BenfordsLaw() {
+export function BenfordsLaw({ data }: { data?: BenfordDataPoint[] }) {
+  const chartData = data && data.length > 0 ? data : fallbackBenfordData
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
       <h3 className="text-lg font-semibold text-slate-100 mb-4">Benford's Law Analysis</h3>
       <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={benfordData}>
+        <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
           <XAxis dataKey="digit" stroke="#94a3b8" />
           <YAxis stroke="#94a3b8" />
-          <Tooltip cursor={{ fill: "rgba(17, 76, 225, 0.6)" }} contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569" }} />
+          <Tooltip cursor={{ fill: "rgba(17, 76, 225, 0.6)" }} contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px" }} />
           <Bar dataKey="observed" fill="#3b82f6" name="Observed" />
           <Line type="monotone" dataKey="expected" stroke="#9ca3af" strokeWidth={2} name="Expected" />
         </BarChart>
@@ -126,14 +166,16 @@ export function BenfordsLaw() {
   )
 }
 
-export function SpiderRatioChart() {
+export function SpiderRatioChart({ data }: { data?: SpiderRatioDataPoint[] }) {
+  const chartData = data && data.length > 0 ? data : fallbackSpiderRatioData
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
       <h3 className="text-lg font-semibold text-slate-100 mb-4">Traffic Distribution</h3>
       <ResponsiveContainer width="100%" height={250}>
         <PieChart>
           <Pie
-            data={spiderRatioData}
+            data={chartData}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -142,26 +184,29 @@ export function SpiderRatioChart() {
             fill="#3b82f6"
             dataKey="value"
           >
-            <Cell fill="#3b82f6" />
-            <Cell fill="#ef4444" />
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={index === 0 ? "#3b82f6" : "#ef4444"} />
+            ))}
           </Pie>
-          <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569" }} />
+          <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px" }} />
         </PieChart>
       </ResponsiveContainer>
     </div>
   )
 }
 
-export function ZScoreHistory() {
+export function ZScoreHistory({ data }: { data?: ZScoreDataPoint[] }) {
+  const chartData = data && data.length > 0 ? data : fallbackZScoreData
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
       <h3 className="text-lg font-semibold text-slate-100 mb-4">Z-Score History</h3>
       <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={zScoreData}>
+        <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
           <XAxis dataKey="day" stroke="#94a3b8" />
           <YAxis stroke="#94a3b8" />
-          <Tooltip cursor={{ fill: "rgba(17, 76, 225, 0.6)" }} contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569" }} />
+          <Tooltip cursor={{ fill: "rgba(17, 76, 225, 0.6)" }} contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px" }} />
           <ReferenceLine
             y={3.0}
             stroke="#ef4444"
@@ -174,8 +219,42 @@ export function ZScoreHistory() {
   )
 }
 
+// ==========================================
+// 4. CUSTOM COMPONENTS & HELPERS
+// ==========================================
+
+interface CustomBarProps {
+  fill?: string
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  payload?: {
+    zScore: number
+    [key: string]: any
+  }
+}
+
 // Custom bar component to color bars based on z-score
-function CustomBar(props: any) {
-  const { fill, x, y, width, height, payload } = props
-  return <rect x={x} y={y} width={width} height={height} fill={payload.zScore > 3.0 ? "#ef4444" : "#3b82f6"} />
+function CustomBar(props: CustomBarProps) {
+  const { x, y, width, height, payload } = props
+  
+  // Provide safe fallbacks if Recharts tries to render before data is ready
+  if (x === undefined || y === undefined || width === undefined || height === undefined || !payload) {
+    return null
+  }
+
+  const isAnomalous = payload.zScore > 3.0
+  
+  return (
+    <rect 
+      x={x} 
+      y={y} 
+      width={width} 
+      height={height} 
+      fill={isAnomalous ? "#ef4444" : "#3b82f6"} 
+      rx={2} // Added a slight border radius for cleaner aesthetics
+      ry={2}
+    />
+  )
 }

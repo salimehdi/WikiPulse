@@ -1,12 +1,104 @@
 "use client"
+import { useState, useEffect, useMemo } from "react"
 import { StatsCard } from "@/components/stats-card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { Activity, Download, Zap } from "lucide-react"
-import { getGlobalMetrics, getActivityData } from "@/lib/mock-data"
+
+const CHART_COLORS = [
+  "#3b82f6", // blue
+  "#ef4444", // red
+  "#eab308", // yellow
+  "#f97316", // orange
+  "#8b5cf6", // purple
+  "#ec4899", // pink
+  "#10b981", // emerald
+  "#06b6d4", // cyan
+]
+
+// Helper: "dom_infectious_disease" -> "Dom Infectious Disease"
+const formatBarName = (key: string) => {
+  return key
+    .split("_")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")
+}
+
+async function getGlobalMetrics() {
+  const response = await fetch("https://wikipulse-backend.onrender.com/api/v1/dashboard")
+  const data = await response.json()
+
+  return {
+    totalTopics: data.globalMetrics.totalDomains,
+    globalAnomalyRate: data.globalMetrics.globalAnomalyRate,
+    systemStatus: data.globalMetrics.systemStatus,
+    anomalyDetectedCount: data.globalMetrics.anomalyCount,
+    activityChart: data.activityChart || []
+  }
+}
 
 export default function Dashboard() {
-  const metrics = getGlobalMetrics()
-  const activityData = getActivityData()
+  const [metrics, setMetrics] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadMetrics() {
+      try {
+        const data = await getGlobalMetrics()
+        
+        // Appending your mock activity data to the real metrics just for demonstration
+        // const activityData0 = [
+        //   {
+        //     "date": "2026-02-21",
+        //     "dom_infectious_disease": 25430,
+        //     "dom_stock_market_crash1": 12050,
+        //     "dom_stock_market_crash3": 10050,
+        //     "dom_stock_market_crash5": 11050,
+        //     "dom_stock_market_crash7": 16050,
+        //   },
+        //   {
+        //     "date": "2026-02-21",
+        //     "dom_infectious_disease": 25430,
+        //     "dom_stock_market_crash1": 12050,
+        //     "dom_stock_market_crash3": 10050,
+        //     "dom_stock_market_crash5": 11050,
+        //     "dom_stock_market_crash7": 16050,
+        //   },
+        // ]
+        // data.activityChart.push(...activityData0) 
+        
+        setMetrics(data)
+      } catch (error) {
+        console.error("Failed to fetch dashboard metrics:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadMetrics()
+  }, []) 
+
+  const dynamicBarKeys = useMemo(() => {
+    if (!metrics?.activityChart) return []
+    
+    const keys = new Set<string>()
+    metrics.activityChart.forEach((dataPoint: any) => {
+      Object.keys(dataPoint).forEach(key => {
+        if (key !== "date") {
+          keys.add(key)
+        }
+      })
+    })
+    
+    return Array.from(keys)
+  }, [metrics])
+
+  if (isLoading || !metrics) {
+    return (
+      <div className="min-h-screen bg-slate-950 p-8 flex items-center justify-center">
+        <p className="text-slate-400 text-xl animate-pulse">Loading Command Center...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 p-8">
@@ -51,25 +143,38 @@ export default function Dashboard() {
           status={metrics.anomalyDetectedCount > 2 ? "critical" : "warning"}
           icon={<Activity size={24} />}
         />
-        <StatsCard title="System Status" value={metrics.systemStatus} status="normal" icon={<Activity size={24} />} />
+        <StatsCard 
+          title="System Status" 
+          value={metrics.systemStatus} 
+          status="normal" 
+          icon={<Activity size={24} />} 
+        />
       </div>
 
       {/* Global Activity Heatmap */}
       <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-slate-100 mb-4">Anomalies Detected (Last 7 Days)</h3>
         <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={activityData}>
+          <BarChart data={metrics.activityChart}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis dataKey="date" stroke="#94a3b8" />
             <YAxis stroke="#94a3b8" />
-            <Tooltip cursor={{ fill: "rgba(17, 76, 225, 0.6)" }}  contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569" }} />
+            <Tooltip 
+              cursor={{ fill: "rgba(17, 76, 225, 0.6)" }}  
+              contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569" }} 
+            />
             <Legend />
-            <Bar dataKey="influenza" fill="#ef4444" name="Influenza" />
-            <Bar dataKey="covid19" fill="#f97316" name="COVID-19" />
-            <Bar dataKey="vaccination" fill="#eab308" name="Vaccination" />
-            <Bar dataKey="mpox" fill="#3b82f6" name="Mpox" />
-            <Bar dataKey="ebola" fill="#8b5cf6" name="Ebola" />
-            <Bar dataKey="measles" fill="#ec4899" name="Measles" />
+            
+            {/* Dynamically map through the extracted keys to create Bars */}
+            {dynamicBarKeys.map((key, index) => (
+              <Bar 
+                key={key} 
+                dataKey={key} 
+                name={formatBarName(key)} 
+                fill={CHART_COLORS[index % CHART_COLORS.length]} 
+              />
+            ))}
+
           </BarChart>
         </ResponsiveContainer>
       </div>
