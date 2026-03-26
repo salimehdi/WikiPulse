@@ -41,9 +41,9 @@ export default function LogDetail() {
         setIsLoading(true)
         const response = await fetch(`https://wikipulse-backend.onrender.com/api/v1/domains/${domainId}/logs/${logId}`)
         
-        // if (!response.ok) {
-        //   throw new Error("Failed to fetch log details")
-        // }
+        if (!response.ok) {
+          throw new Error("Failed to fetch log details")
+        }
         
         const data = await response.json()
         setLogData(data)

@@ -152,15 +152,19 @@ export default function DomainDetail() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // NEW: State variables for the forensics API call
+  const [isForensicsRunning, setIsForensicsRunning] = useState(false)
+  const [forensicsFeedback, setForensicsFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+
   useEffect(() => {
     async function fetchDomainData() {
       try {
         setIsLoading(true)
         const response = await fetch(`https://wikipulse-backend.onrender.com/api/v1/domains/${domainId}`)
         
-        // if (!response.ok) {
-        //   throw new Error("Failed to fetch domain details")
-        // }
+        if (!response.ok) {
+          throw new Error("Failed to fetch domain details")
+        }
         
         const data = await response.json()
         // Merge API data with fallback/mock data
@@ -182,6 +186,48 @@ export default function DomainDetail() {
       fetchDomainData()
     }
   }, [domainId])
+
+  // NEW: Function to handle the forensics API call
+  const handleRunForensics = async () => {
+    setIsForensicsRunning(true)
+    setForensicsFeedback(null)
+
+    try {
+      const response = await fetch(`https://wikipulse-backend.onrender.com/api/v1/domains/${domainId}/forensics`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          depth: "standard"
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to trigger forensics scan")
+      }
+
+      const data = await response.json()
+      
+      // Assuming a 202 Accepted returns the structure you provided
+      setForensicsFeedback({ 
+        type: 'success', 
+        message: data.message || "Forensics started successfully." 
+      })
+
+      // Auto-hide the success message after 5 seconds
+      setTimeout(() => setForensicsFeedback(null), 5000)
+
+    } catch (err: any) {
+      console.error(err)
+      setForensicsFeedback({ 
+        type: 'error', 
+        message: err.message || "An error occurred while starting forensics." 
+      })
+    } finally {
+      setIsForensicsRunning(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -211,14 +257,35 @@ export default function DomainDetail() {
           <span className="text-slate-200 font-medium">{domainData.name}</span>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
           <div>
             <h1 className="text-4xl font-bold text-slate-200">{domainData.name}</h1>
             <p className="text-slate-400 mt-2">Detailed forensic analysis and event logs</p>
           </div>
-          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors font-medium">
-            Run Forensics
-          </button>
+          
+          {/* UPDATED: Run Forensics Button and Feedback */}
+          <div className="flex flex-col items-end gap-2">
+            <button 
+              onClick={handleRunForensics}
+              disabled={isForensicsRunning}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed rounded-lg text-white transition-colors font-medium flex items-center gap-2"
+            >
+              {isForensicsRunning ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Starting...
+                </>
+              ) : (
+                "Run Forensics"
+              )}
+            </button>
+            
+            {forensicsFeedback && (
+              <p className={`text-sm ${forensicsFeedback.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+                {forensicsFeedback.message}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
