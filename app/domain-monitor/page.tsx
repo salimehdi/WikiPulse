@@ -3,65 +3,98 @@
 import Link from "next/link"
 import { LineChart, Line, ResponsiveContainer } from "recharts"
 import { AlertCircle, CheckCircle, AlertTriangle, ArrowRight } from "lucide-react"
+import { useEffect, useState } from "react"
 
-const domains = [
+const domains_mock = [
+  // {
+  //   id: "1",
+  //   name: "Influenza",
+  //   articlesMonitored: 487,
+  //   status: "critical",
+  //   anomalyRate: 28,
+  //   trustScore: 0.71,
+  //   sparklineData: [12, 14, 16, 18, 22, 25, 28, 26, 24, 20, 18, 16, 15, 14],
+  // },
+  // {
+  //   id: "2",
+  //   name: "COVID-19",
+  //   articlesMonitored: 621,
+  //   status: "anomaly",
+  //   anomalyRate: 14,
+  //   trustScore: 0.82,
+  //   sparklineData: [8, 9, 10, 11, 12, 13, 14, 14, 13, 12, 11, 10, 9, 8],
+  // },
+  // {
+  //   id: "3",
+  //   name: "Climate Change",
+  //   articlesMonitored: 793,
+  //   status: "stable",
+  //   anomalyRate: 5,
+  //   trustScore: 0.91,
+  //   sparklineData: [4, 4, 4, 5, 5, 5, 5, 4, 4, 4, 4, 3, 3, 3],
+  // },
+  // {
+  //   id: "4",
+  //   name: "Artificial Intelligence",
+  //   articlesMonitored: 512,
+  //   status: "critical",
+  //   anomalyRate: 32,
+  //   trustScore: 0.65,
+  //   sparklineData: [15, 18, 22, 25, 28, 31, 32, 30, 28, 26, 24, 22, 20, 18],
+  // },
+  // {
+  //   id: "5",
+  //   name: "Election 2026",
+  //   articlesMonitored: 334,
+  //   status: "anomaly",
+  //   anomalyRate: 19,
+  //   trustScore: 0.75,
+  //   sparklineData: [12, 13, 15, 17, 18, 19, 19, 18, 17, 16, 15, 14, 13, 12],
+  // },
+  // {
+  //   id: "6",
+  //   name: "Economic Crisis",
+  //   articlesMonitored: 456,
+  //   status: "stable",
+  //   anomalyRate: 7,
+  //   trustScore: 0.88,
+  //   sparklineData: [6, 6, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5],
+  // },
   {
-    id: "1",
-    name: "Influenza",
-    articlesMonitored: 487,
-    status: "critical",
-    anomalyRate: 28,
-    trustScore: 0.71,
-    sparklineData: [12, 14, 16, 18, 22, 25, 28, 26, 24, 20, 18, 16, 15, 14],
-  },
-  {
-    id: "2",
-    name: "COVID-19",
-    articlesMonitored: 621,
-    status: "anomaly",
-    anomalyRate: 14,
-    trustScore: 0.82,
-    sparklineData: [8, 9, 10, 11, 12, 13, 14, 14, 13, 12, 11, 10, 9, 8],
-  },
-  {
-    id: "3",
-    name: "Climate Change",
-    articlesMonitored: 793,
-    status: "stable",
-    anomalyRate: 5,
-    trustScore: 0.91,
-    sparklineData: [4, 4, 4, 5, 5, 5, 5, 4, 4, 4, 4, 3, 3, 3],
-  },
-  {
-    id: "4",
-    name: "Artificial Intelligence",
-    articlesMonitored: 512,
-    status: "critical",
-    anomalyRate: 32,
-    trustScore: 0.65,
-    sparklineData: [15, 18, 22, 25, 28, 31, 32, 30, 28, 26, 24, 22, 20, 18],
-  },
-  {
-    id: "5",
-    name: "Election 2026",
-    articlesMonitored: 334,
-    status: "anomaly",
-    anomalyRate: 19,
-    trustScore: 0.75,
-    sparklineData: [12, 13, 15, 17, 18, 19, 19, 18, 17, 16, 15, 14, 13, 12],
-  },
-  {
-    id: "6",
-    name: "Economic Crisis",
-    articlesMonitored: 456,
-    status: "stable",
-    anomalyRate: 7,
-    trustScore: 0.88,
-    sparklineData: [6, 6, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5],
-  },
+    "id": "dom_infectious_disease",
+    "name": "Infectious disease",
+    "status": "stable",
+    "anomalyRate": 0.0,
+    "trustScore": 0.95,
+    "articlesMonitored": 1,
+    "sparklineData": [21000, 22500, 25430, 24000, 26000, 24500, 25430]
+  }
 ]
 
 export default function DomainMonitor() {
+  const [domains, setDomains] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchDomains = async () => {
+      const response = await fetch("https://wikipulse-backend.onrender.com/api/v1/domains")
+      const data = await response.json()
+      data.push(
+        {
+          "id": 1,
+          "name": "Infectious disease",
+          "status": "stable",
+          "anomalyRate": 0.0,
+          "trustScore": 0.95,
+          "articlesMonitored": 1,
+          "sparklineData": [21000, 22500, 25430, 24000, 26000, 24500, 25430]
+        }
+      )
+      setDomains(data)
+    }
+
+    fetchDomains()
+  }, [])
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "stable":
@@ -96,7 +129,7 @@ export default function DomainMonitor() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {domains.map((domain) => (
+        {domains?.map((domain) => (
           <Link
             key={domain.id}
             href={`/domain/${domain.id}`}
@@ -115,7 +148,7 @@ export default function DomainMonitor() {
             {/* Mini Sparkline */}
             <div className="mb-4 h-12">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={domain.sparklineData.map((value, i) => ({ day: i, value }))}>
+                <LineChart data={domain.sparklineData.map((value:any, i:any) => ({ day: i, value }))}>
                   <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>

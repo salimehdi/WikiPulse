@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams } from "next/navigation"
-
+import { useState, useEffect } from "react"
 import { StatsCard } from "@/components/stats-card"
 import {
   TrafficChart,
@@ -13,7 +13,7 @@ import {
 import { AlertCircle, CheckCircle, TrendingUp } from "lucide-react"
 import Link from "next/link"
 
-const domainsData: Record<
+let domainsData: Record<
   string,
   {
     id: string
@@ -144,11 +144,106 @@ const eventLogsData: Record<
   ],
 }
 
+
 export default function DomainDetail() {
   const { domainId } = useParams<{ domainId: string }>()
-  const domain = domainsData[domainId]
-  const activeDomain = domain || domainsData["1"]
-  const logs = eventLogsData[domainId] || eventLogsData["1"]
+  
+  const [domainData, setDomainData] = useState<any>(domainsData[domainId])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // NEW: State variables for the forensics API call
+  const [isForensicsRunning, setIsForensicsRunning] = useState(false)
+  const [forensicsFeedback, setForensicsFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+
+  useEffect(() => {
+    async function fetchDomainData() {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`https://wikipulse-backend.onrender.com/api/v1/domains/${domainId}`)
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch domain details")
+        }
+        
+        const data = await response.json()
+        // Merge API data with fallback/mock data
+        const data0 = domainData
+        data0.logs = eventLogsData[domainId] || [];
+        console.log("Fetched domain data:", data0)
+        setDomainData(data0)
+        // -----
+        // setDomainData(data)
+      } catch (err: any) {
+        console.error(err)
+        setError(err.message)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (domainId) {
+      fetchDomainData()
+    }
+  }, [domainId])
+
+  // NEW: Function to handle the forensics API call
+  const handleRunForensics = async () => {
+    setIsForensicsRunning(true)
+    setForensicsFeedback(null)
+
+    try {
+      const response = await fetch(`https://wikipulse-backend.onrender.com/api/v1/domains/${domainId}/forensics`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          depth: "standard"
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to trigger forensics scan")
+      }
+
+      const data = await response.json()
+      
+      // Assuming a 202 Accepted returns the structure you provided
+      setForensicsFeedback({ 
+        type: 'success', 
+        message: data.message || "Forensics started successfully." 
+      })
+
+      // Auto-hide the success message after 5 seconds
+      setTimeout(() => setForensicsFeedback(null), 5000)
+
+    } catch (err: any) {
+      console.error(err)
+      setForensicsFeedback({ 
+        type: 'error', 
+        message: err.message || "An error occurred while starting forensics." 
+      })
+    } finally {
+      setIsForensicsRunning(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 p-8 flex items-center justify-center">
+        <p className="text-slate-400 text-xl animate-pulse">Analyzing Domain Telemetry...</p>
+      </div>
+    )
+  }
+
+  // if (error || !domainData) {
+  //   return (
+  //     <div className="min-h-screen bg-slate-950 p-8 flex items-center justify-center">
+  //       <p className="text-red-400 text-xl">Error: {error || "Domain not found"}</p>
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="min-h-screen bg-slate-950 p-8">
@@ -159,17 +254,38 @@ export default function DomainDetail() {
             Monitor
           </Link>
           <span>&gt;</span>
-          <span className="text-slate-200 font-medium">{activeDomain.name}</span>
+          <span className="text-slate-200 font-medium">{domainData.name}</span>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-slate-200">{activeDomain.name}</h1>
+            <h1 className="text-4xl font-bold text-slate-200">{domainData.name}</h1>
             <p className="text-slate-400 mt-2">Detailed forensic analysis and event logs</p>
           </div>
-          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors font-medium">
-            Run Forensics
-          </button>
+          
+          {/* UPDATED: Run Forensics Button and Feedback */}
+          <div className="flex flex-col items-end gap-2">
+            <button 
+              onClick={handleRunForensics}
+              disabled={isForensicsRunning}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed rounded-lg text-white transition-colors font-medium flex items-center gap-2"
+            >
+              {isForensicsRunning ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Starting...
+                </>
+              ) : (
+                "Run Forensics"
+              )}
+            </button>
+            
+            {forensicsFeedback && (
+              <p className={`text-sm ${forensicsFeedback.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+                {forensicsFeedback.message}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -177,20 +293,20 @@ export default function DomainDetail() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatsCard
           title="Anomaly Rate"
-          value={activeDomain.anomalyRate}
+          value={domainData.anomalyRate}
           unit="%"
-          status={activeDomain.anomalyRate > 15 ? "critical" : activeDomain.anomalyRate > 8 ? "warning" : "normal"}
+          status={domainData.anomalyRate > 15 ? "critical" : domainData.anomalyRate > 8 ? "warning" : "normal"}
           icon={<AlertCircle size={24} />}
         />
         <StatsCard
           title="Forensic Trust Score"
-          value={activeDomain.trustScore}
-          status={activeDomain.trustScore > 0.8 ? "normal" : "warning"}
+          value={domainData.trustScore}
+          status={domainData.trustScore > 0.8 ? "normal" : "warning"}
           icon={<CheckCircle size={24} />}
         />
         <StatsCard
           title="Articles Monitored"
-          value={activeDomain.articlesMonitored}
+          value={domainData.articlesMonitored}
           status="normal"
           icon={<TrendingUp size={24} />}
         />
@@ -198,7 +314,8 @@ export default function DomainDetail() {
 
       {/* Main Charts */}
       <div className="mb-8">
-        <TrafficChart />
+        {/* Pass fullChartData if your TrafficChart accepts it as a prop */}
+        <TrafficChart data={domainData.fullChartData} />
       </div>
 
       {/* Forensic Analysis Grid */}
@@ -223,9 +340,11 @@ export default function DomainDetail() {
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => (
+              {domainData.logs?.map((log: any) => (
                 <tr key={log.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
-                  <td className="py-4 px-4 text-slate-300">{log.timestamp}</td>
+                  <td className="py-4 px-4 text-slate-300">
+                    {new Date(log.timestamp).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+                  </td>
                   <td className="py-4 px-4">
                     <span
                       className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
@@ -250,6 +369,13 @@ export default function DomainDetail() {
                   </td>
                 </tr>
               ))}
+              {(!domainData.logs || domainData.logs.length === 0) && (
+                <tr>
+                  <td colSpan={4} className="py-4 px-4 text-center text-slate-500">
+                    No logs found for this domain.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
